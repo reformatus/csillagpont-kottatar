@@ -5,7 +5,9 @@
   "name": "Csillagpont kották",
   "description": "A 2025-ös Csillagpont Fesztivál kottái.",
   "legal": "",
+  "parallelUpdateJobs": 5,
+  "amountOfSongsInRequest": 1,
   "noCms": true,
   "lastUpdated": "2025-07-09T21:20:32.735238",
-  "songFields": {0: "to be implemented"}
+  "songFields": {"0": "to be implemented"}
 }
