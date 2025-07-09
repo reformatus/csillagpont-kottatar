@@ -5,7 +5,7 @@ from pathlib import Path
 from datetime import datetime
 from urllib.parse import urlparse
 import hashlib
-from credentials import API_ROOT
+from credentials import API_ROOT, SITE_PATH
 
 def ensure_directory_exists(file_path):
     """Create directory structure if it doesn't exist"""
@@ -93,7 +93,7 @@ def process_song_files(song_data, base_dir, api_root):
                 
             # Create local file path
             local_file_path = base_dir / "docs" / "files" / filename
-            relative_path = f"/files/{filename}"
+            relative_path = f"{SITE_PATH}/files/{filename}" if SITE_PATH else f"/files/{filename}"
             
             print(f"Local file path: {local_file_path}")
             
