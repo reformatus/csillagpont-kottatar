@@ -1,0 +1,30 @@
+[
+  {
+    "uuid": "7cca7fbb-b7bb-45d7-a351-ac282676cf1d",
+    "title": "Teszt dal kettő",
+    "title_original": "Second test song",
+    "year": "2023",
+    "composer": "Második szerző Benedek",
+    "lyrics": "1. Második teszt dal versszaka\r\n\r\nRefr. Második teszt dal refrénje",
+    "translator": "Második fordító Benedek",
+    "key": "F-moll",
+    "ambitus": "egy oktáv",
+    "bible_ref": "Filippi 4:4",
+    "first_line": "Második teszt dal versszak",
+    "link": "https://facebook.com",
+    "liturgical_role": "",
+    "language": "francia",
+    "opensong": "[V1]\r\nMásodik teszt dal versszaka\r\n[C]\r\nMásodik teszt dal refrénje",
+    "pdf": "/system/files/2024-05/1.pdf",
+    "ref_songbook": "512",
+    "genre": "himnusz",
+    "svg": "/system/files/2024-05/refisz_logo.svg",
+    "lyricist": "Második író Benedek",
+    "sofar": "2020 - Ott ahol vagy",
+    "content_tags": "áldás,hálaadás,Szentlélek",
+    "tempo": "változó",
+    "holiday": "Húsvét,Pünkösd,Karácsony",
+    "variation_of": "3bc19485-eb2d-400f-8c2d-c542e003c7e0",
+    "presentation": ""
+  }
+]
