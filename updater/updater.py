@@ -2,7 +2,7 @@ import os
 import json
 import requests
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 from urllib.parse import urlparse, unquote
 import hashlib
 
@@ -206,8 +206,8 @@ def update_songs_data():
     # Track if any changes were made
     changes_made = False
     
-    # Get current timestamp in ISO format
-    current_timestamp = datetime.now().isoformat()
+    # Get current timestamp in UTC ISO format with Z suffix
+    current_timestamp = datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
     
     # Fetch all songs
     songs_url = f"{API_ROOT}/songs"
@@ -324,6 +324,6 @@ def update_songs_data():
 
 if __name__ == "__main__":
     print("Starting data update...")
-    print(f"Current timestamp: {datetime.now().isoformat()}")
+    print(f"Current timestamp: {datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')}")
     update_songs_data()
     print("Data update completed!")
