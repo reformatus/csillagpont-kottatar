@@ -1,4 +1,25 @@
-updater/credentials.py
-updater/__pycache__/credentials.cpython-311.pyc
-updater/__pycache__/updater.cpython-311.pyc
+# Python
 updater/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+.venv/
+venv/
+env/
+
+# Credentials (should not be committed)
+updater/credentials.py
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

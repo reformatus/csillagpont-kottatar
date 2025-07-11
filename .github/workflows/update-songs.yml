@@ -1,0 +1,75 @@
+name: Update Songs Data
+
+on:
+  workflow_dispatch:  # Allows manual triggering from GitHub UI
+    inputs:
+      commit_message:
+        description: 'Custom commit message (optional)'
+        required: false
+        default: 'Update songs data and files'
+  schedule:
+    - cron: '0 6 * * *'  # Run daily at 6 AM UTC (optional automated schedule)
+
+permissions:
+  contents: write  # Required for pushing commits
+
+jobs:
+  update-songs:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        fetch-depth: 1
+      
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        cd updater
+        pip install -r requirements.txt
+        
+    - name: Run updater script
+      run: |
+        cd updater
+        python run_updater.py
+      continue-on-error: false
+      env:
+        API_ROOT: ${{ secrets.API_ROOT }}
+        SITE_PATH: ${{ vars.SITE_PATH }}
+        
+    - name: Check for changes
+      id: check_changes
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add -A
+        if git diff --staged --quiet; then
+          echo "changes=false" >> $GITHUB_OUTPUT
+          echo "No changes to commit"
+        else
+          echo "changes=true" >> $GITHUB_OUTPUT
+          echo "Changes detected"
+          git status --porcelain
+        fi
+        
+    - name: Commit and push changes
+      if: steps.check_changes.outputs.changes == 'true'
+      run: |
+        commit_msg="${{ github.event.inputs.commit_message }}"
+        if [ -z "$commit_msg" ]; then
+          commit_msg="Update songs data and files"
+        fi
+        git commit -m "$commit_msg"
+        git push
+        
+    - name: No changes message
+      if: steps.check_changes.outputs.changes == 'false'
+      run: |
+        echo "✅ Script ran successfully but no changes were detected"
+        echo "The repository is already up to date"

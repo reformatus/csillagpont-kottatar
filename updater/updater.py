@@ -3,9 +3,8 @@ import json
 import requests
 from pathlib import Path
 from datetime import datetime
-from urllib.parse import urlparse
+from urllib.parse import urlparse, unquote
 import hashlib
-from credentials import API_ROOT, SITE_PATH
 
 def ensure_directory_exists(file_path):
     """Create directory structure if it doesn't exist"""
@@ -22,11 +21,18 @@ def save_json_to_file(data, file_path):
 def fetch_json_from_api(url):
     """Fetch JSON data from API endpoint"""
     try:
-        response = requests.get(url)
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Accept': 'application/json'
+        }
+        response = requests.get(url, headers=headers, timeout=30)
         response.raise_for_status()  # Raises an HTTPError for bad responses
         return response.json()
     except requests.exceptions.RequestException as e:
         print(f"Error fetching {url}: {e}")
+        return None
+    except json.JSONDecodeError as e:
+        print(f"Error parsing JSON from {url}: {e}")
         return None
 
 def download_file(url, local_path):
@@ -35,7 +41,12 @@ def download_file(url, local_path):
         # Create directory if it doesn't exist
         ensure_directory_exists(local_path)
         
-        response = requests.get(url, stream=True)
+        # Add headers to avoid being blocked
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+        
+        response = requests.get(url, stream=True, headers=headers, timeout=30)
         response.raise_for_status()
         
         with open(local_path, 'wb') as f:
@@ -51,7 +62,10 @@ def download_file(url, local_path):
 def get_remote_file_hash(url):
     """Get MD5 hash of a remote file without downloading it completely"""
     try:
-        response = requests.get(url, stream=True)
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+        response = requests.get(url, stream=True, headers=headers, timeout=30)
         response.raise_for_status()
         
         hash_md5 = hashlib.md5()
@@ -74,7 +88,7 @@ def get_file_hash(file_path):
             hash_md5.update(chunk)
     return hash_md5.hexdigest()
 
-def process_song_files(song_data, base_dir, api_root):
+def process_song_files(song_data, base_dir, api_root, site_path):
     """Process PDF and SVG files for a song, download if needed"""
     files_updated = False
     
@@ -85,15 +99,19 @@ def process_song_files(song_data, base_dir, api_root):
             original_path = song_data[field]
             print(f"Found {field} field: {original_path}")
             
-            # Extract filename from path
+            # Extract filename from path and decode URL encoding
             filename = os.path.basename(original_path)
             if not filename:
                 print(f"No filename found in path: {original_path}")
                 continue
+            
+            # Decode URL-encoded characters in filename
+            decoded_filename = unquote(filename)
+            print(f"Decoded filename: {decoded_filename}")
                 
-            # Create local file path
-            local_file_path = base_dir / "docs" / "files" / filename
-            relative_path = f"{SITE_PATH}/files/{filename}" if SITE_PATH else f"/files/{filename}"
+            # Create local file path with decoded filename
+            local_file_path = base_dir / "docs" / "files" / decoded_filename
+            relative_path = f"{site_path}/files/{decoded_filename}" if site_path else f"/files/{decoded_filename}"
             
             print(f"Local file path: {local_file_path}")
             
@@ -123,7 +141,7 @@ def process_song_files(song_data, base_dir, api_root):
             should_download = True
             if local_file_path.exists():
                 # Compare file hashes to see if remote file has changed
-                print(f"Checking if remote file has changed: {filename}")
+                print(f"Checking if remote file has changed: {decoded_filename}")
                 local_hash = get_file_hash(str(local_file_path))
                 remote_hash = get_remote_file_hash(file_url)
                 
@@ -131,21 +149,26 @@ def process_song_files(song_data, base_dir, api_root):
                     print(f"Could not get remote hash for {file_url}, skipping download")
                     should_download = False
                 elif local_hash == remote_hash:
-                    print(f"File unchanged: {filename}")
+                    print(f"File unchanged: {decoded_filename}")
                     should_download = False
                 else:
-                    print(f"File changed: {filename} (local: {local_hash[:8]}..., remote: {remote_hash[:8]}...)")
+                    print(f"File changed: {decoded_filename} (local: {local_hash[:8]}..., remote: {remote_hash[:8]}...)")
                     should_download = True
             else:
-                print(f"File does not exist locally: {filename}")
+                print(f"File does not exist locally: {decoded_filename}")
             
             if should_download:
                 print(f"Attempting to download: {file_url}")
                 if download_file(file_url, str(local_file_path)):
-                    files_updated = True
-                    print(f"Successfully downloaded: {filename}")
+                    # Verify the downloaded file is not empty and has expected content
+                    if local_file_path.stat().st_size > 0:
+                        files_updated = True
+                        print(f"Successfully downloaded: {decoded_filename}")
+                    else:
+                        print(f"Downloaded file is empty, removing: {decoded_filename}")
+                        local_file_path.unlink()  # Remove empty file
                 else:
-                    print(f"Failed to download: {filename}")
+                    print(f"Failed to download: {decoded_filename}")
             
             # Update the path in song data to relative path
             if song_data[field] != relative_path:
@@ -159,6 +182,24 @@ def process_song_files(song_data, base_dir, api_root):
 
 def update_songs_data():
     """Main function to fetch and save songs data"""
+    # Get configuration from environment variables
+    API_ROOT = os.getenv('API_ROOT')
+    SITE_PATH = os.getenv('SITE_PATH', '')  # Default to empty string if not set
+    
+    # Validate configuration
+    if not API_ROOT:
+        print("ERROR: API_ROOT environment variable is not set")
+        print("Please set the API_ROOT environment variable to your API endpoint")
+        exit(1)  # Exit with error code for GitHub Actions
+    
+    if API_ROOT == "https://your-api-domain.com/api":
+        print("ERROR: API_ROOT is still set to the template value")
+        print("Please update the API_ROOT environment variable with your actual API endpoint")
+        exit(1)
+    
+    print(f"Using API_ROOT: {API_ROOT}")
+    print(f"Using SITE_PATH: {SITE_PATH}")
+    
     # Get the base directory (one level up from updater)
     base_dir = Path(__file__).parent.parent
     
@@ -175,7 +216,7 @@ def update_songs_data():
     songs_data = fetch_json_from_api(songs_url)
     if songs_data is None:
         print("Failed to fetch songs data")
-        return
+        exit(1)  # Exit with error code for GitHub Actions
     
     # Save songs list to docs/api/songs/index.json
     songs_file_path = base_dir / "docs" / "api" / "songs" / "index.json"
@@ -234,7 +275,7 @@ def update_songs_data():
         print(f"Processing song: {song_data.get('title', 'Unknown')}")
         
         # Process files (PDF, SVG) and update paths
-        files_updated = process_song_files(song_data, base_dir, API_ROOT)
+        files_updated = process_song_files(song_data, base_dir, API_ROOT, SITE_PATH)
         if files_updated:
             changes_made = True
         
