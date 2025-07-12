@@ -5,11 +5,11 @@
   "name": "Csillagpont kották",
   "description": "A 2025-ös Csillagpont Fesztivál kottái.",
   "legal": "",
+  "aboutLink": "https://csillagpont.info",
+  "contactEmail": "csillagpont-kottatar@fodor.pro",
   "parallelUpdateJobs": 5,
   "amountOfSongsInRequest": 1,
   "noCms": true,
   "lastUpdated": "2025-07-12T15:53:53.860866Z",
-  "songFields": {
-    "0": "to be implemented"
-  }
+  "songFields": {}
 }
